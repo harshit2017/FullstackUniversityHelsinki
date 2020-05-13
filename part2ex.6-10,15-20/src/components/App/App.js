@@ -36,35 +36,32 @@ const App = () => {
     setFilterName(e.target.value)
   }
 
-  const handleDelete = (e) => {
-    const name = e.target.name
-    const id = e.target.id
+  const handleDelete = (id) => {
+    const person = persons.find((person) => person.id === id);
+    let deleteAlert = window.confirm(`Are you sure you want to delete the entry ${person.name}?`);
 
-
-    const confirm = window.confirm(`Delete ${name}`)
-
-    if (confirm) {
-      personsService
-        .remove(id)
-        .then(() =>
-          setPersons(persons.filter((person) => person.name.toLowerCase() !== name.toLowerCase()))
-        )
+    if (deleteAlert) {
+      personsService.remove(id)
+        .then(() => {
+          setPersons(persons.filter((person) => person.id !== id));
+        });
     }
   }
 
   const addName = (e) => {
     e.preventDefault()
+    const person = persons.find((person) => person.name.toLowerCase() === newName.toLowerCase())
 
-    const isThere = persons.map((person) => person.name.toLowerCase()).includes(newName.toLowerCase())
+    if (person) {
 
-    const nameObject = { name: newName, number: newNumber }
+      if (window.confirm(`${newName} is already added to phonebook,replace the old number with a new one ?`)) {
+        const pid = person.id
+        const nameObject = {
+          name: newName.toUpperCase(),
+          number: newNumber
+        }
 
-    if (isThere) {
-      const confirm = window.confirm(`${newName} is already added to phonebook,replace the old number with a new one ?`)
-
-      if (confirm) {
-        const pid = persons.find((person) => person.name.toLowerCase() === newName.toLowerCase()).id
-
+        // update request
         personsService
           .update(pid, nameObject)
           .then(response => {
@@ -74,7 +71,7 @@ const App = () => {
             setTimeout(() => setMessage(null), 5000)
           })
           .catch(error => {
-            setMessage(`Person ${error} was already removed from server`)
+            setMessage(`Person ${error.response.data} was already removed from server`)
             setStyleType('error')
             setTimeout(() => setMessage(null), 5000)
           })
@@ -82,23 +79,37 @@ const App = () => {
       }
     }
 
-      else {
-        personsService
-          .create(nameObject)
-          .then(newPersons => {
-            setPersons(persons.concat(newPersons))
-            setMessage(`Successfully Added ${newName}`)
-            setStyleType('notification')
-            setTimeout(() => setMessage(null), 5000)
-          })
+    else {
+
+      // create request
+      const nameObject = {
+        name: newName.toUpperCase(),
+        number: newNumber
       }
 
-
-      setNewName('')
-      setNewNumber('')
-
+      personsService
+        .create(nameObject)
+        .then(newPerson => {
+          console.log('new person-', newPerson)
+          setPersons(persons.concat(newPerson))
+          setMessage(`Successfully Added ${newName}`)
+          setStyleType('notification')
+          setTimeout(() => setMessage(null), 5000)
+        })
+        .catch(error => {
+          setMessage(`Error: ${error.response.data}`)
+          setStyleType('error')
+          console.log(error.response.data)
+          setTimeout(() => setMessage(null), 5000)
+        })
     }
-  
+
+
+    setNewName('')
+    setNewNumber('')
+
+  }
+
 
   return (
     <div>
